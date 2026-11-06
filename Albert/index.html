@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Albert — Cientista & Matemático</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+  :root{
+    --bg:#060a18; --panel:#0b1226cc; --line:#1c2747;
+    --blue:#4f8cff; --violet:#9b6bff; --green:#2ee6a6;
+    --text:#e6ebff; --muted:#8d98c4;
+  }
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(900px 500px at 10% -10%, #2a1a6b55, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #0c3b4a66, transparent 60%),
+      radial-gradient(700px 600px at 50% 120%, #0a3a2c55, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+    overflow:hidden;
+  }
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:960px;margin:0 auto;padding:0 12px}
+  .glass{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .logo{
+    width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;
+    background:linear-gradient(135deg,var(--violet),var(--blue) 60%,var(--green));
+    box-shadow:0 0 24px #7c5cff66;
+  }
+  .pill{
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--muted);
+    cursor:pointer;transition:.2s;background:#0a1022;white-space:nowrap;user-select:none
+  }
+  .pill:hover{color:var(--text);border-color:#33417a}
+  .pill.active{color:#fff}
+  .pill[data-mode="explain"].active{background:#17306b;border-color:var(--blue);box-shadow:0 0 14px #4f8cff55}
+  .pill[data-mode="plan"].active{background:#0d3d30;border-color:var(--green);box-shadow:0 0 14px #2ee6a655}
+  .pill[data-mode="math"].active{background:#34206b;border-color:var(--violet);box-shadow:0 0 14px #9b6bff55}
+  .pill[data-mode="auto"].active{background:#1a2347;border-color:#5a6bb5}
+  #chat{flex:1;overflow-y:auto;padding:18px 4px;scroll-behavior:smooth}
+  #chat::-webkit-scrollbar{width:8px}
+  #chat::-webkit-scrollbar-thumb{background:#1f2b52;border-radius:8px}
+  .msg{display:flex;gap:10px;margin-bottom:16px;animation:pop .3s ease both}
+  .msg.user{flex-direction:row-reverse}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .avatar{width:36px;height:36px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:18px;
+    background:linear-gradient(135deg,var(--violet),var(--blue));}
+  .msg.user .avatar{background:linear-gradient(135deg,#0f7a5c,#1d4f9c)}
+  .bubble{max-width:min(720px,86%);padding:12px 15px;border-radius:16px;line-height:1.55;font-size:15px;border:1px solid var(--line)}
+  .albert .bubble{background:#0d1530;border-top-left-radius:4px}
+  .user .bubble{background:linear-gradient(135deg,#2a2178,#164a8a);border-color:#3a4aa8;border-top-right-radius:4px;white-space:pre-wrap}
+  .albert .bubble[data-mode="explain"]{border-left:3px solid var(--blue)}
+  .albert .bubble[data-mode="plan"]{border-left:3px solid var(--green)}
+  .albert .bubble[data-mode="math"]{border-left:3px solid var(--violet)}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;margin-bottom:8px;font-weight:600}
+  .tag.explain{background:#17306b;color:#9ec1ff}
+  .tag.plan{background:#0d3d30;color:#7ff0c8}
+  .tag.math{background:#34206b;color:#c9aeff}
+  .tag.chat{background:#1a2347;color:#aab5e6}
+  .bubble p{margin:.35rem 0}
+  .bubble b{color:#fff}
+  .step{display:flex;gap:10px;margin:10px 0;padding:10px 12px;background:#0a1128;border:1px solid #18244a;border-radius:12px}
+  .step .n{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--blue);color:#04122e}
+  .note{font-size:13.5px;color:var(--muted);margin-top:8px}
+  .code{font-family:ui-monospace,Consolas,monospace;background:#070d20;border:1px solid #1a2650;border-radius:10px;padding:8px 12px;margin:8px 0;overflow-x:auto;font-size:14px;color:#cfe1ff;white-space:pre}
+  .result{font-size:26px;font-weight:700;background:linear-gradient(90deg,#c9aeff,#7fb2ff,#7ff0c8);-webkit-background-clip:text;background-clip:text;color:transparent;word-break:break-all}
+  table.data{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}
+  table.data td{border-top:1px solid #18244a;padding:5px 6px}
+  table.data td:first-child{color:var(--muted);width:46%}
+  .check{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;cursor:pointer;margin:4px 0;background:#091226;border:1px solid #16314a;transition:.2s}
+  .check:hover{border-color:var(--green)}
+  .check input{appearance:none;flex:none;width:20px;height:20px;border-radius:6px;border:2px solid #2b5d57;margin-top:2px;cursor:pointer;display:grid;place-items:center;transition:.2s}
+  .check input:checked{background:var(--green);border-color:var(--green)}
+  .check input:checked::after{content:"✓";color:#032a1f;font-size:14px;font-weight:800}
+  .check.done span{text-decoration:line-through;color:var(--muted)}
+  .bar{height:6px;border-radius:6px;background:#10213a;overflow:hidden;margin:8px 0 10px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .4s}
+  .chip{display:inline-block;margin:4px 6px 0 0;padding:5px 11px;border-radius:999px;border:1px solid #2b3a74;background:#0a1230;color:#b8c6ff;font-size:13px;cursor:pointer;transition:.2s}
+  .chip:hover{background:#18265a;color:#fff}
+  .dots{display:flex;gap:5px;padding:4px 2px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:bounce 1.2s infinite ease-in-out}
+  .dots i:nth-child(2){animation-delay:.15s;background:var(--violet)}
+  .dots i:nth-child(3){animation-delay:.3s;background:var(--green)}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-7px);opacity:1}}
+  .quick{border:1px solid #2b3a74;background:linear-gradient(135deg,#121c42,#0c1530);color:#dbe4ff;border-radius:14px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.2s;font-weight:500}
+  .quick:hover{transform:translateY(-2px);box-shadow:0 6px 20px #4f8cff33;border-color:var(--blue)}
+  .quick[data-q="plan"]:hover{box-shadow:0 6px 20px #2ee6a633;border-color:var(--green)}
+  .quick[data-q="math"]:hover{box-shadow:0 6px 20px #9b6bff33;border-color:var(--violet)}
+  #input{background:transparent;color:var(--text);resize:none;outline:none;width:100%;max-height:140px;font-size:15px;line-height:1.5}
+  #input::placeholder{color:#6572a3}
+  #send{background:linear-gradient(135deg,var(--violet),var(--blue));border-radius:14px;width:44px;height:44px;display:grid;place-items:center;transition:.2s;flex:none}
+  #send:hover{filter:brightness(1.15);transform:scale(1.05)}
+  #send:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .icon-btn{color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer;background:#0a1022;transition:.2s}
+  .icon-btn:hover{color:#fff;border-color:#4a5aa0}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div class="app">
+  <!-- Cabeçalho -->
+  <header class="glass rounded-2xl mt-3 px-4 py-3">
+    <div class="flex items-center gap-3">
+      <div class="logo">⚛</div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-lg sm:text-xl font-bold leading-tight">Albert <span class="text-[#8d98c4] font-normal">— Cientista & Matemático</span></h1>
+        <p class="text-xs text-[#8d98c4] flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-[#2ee6a6] shadow-[0_0_8px_#2ee6a6]"></span> online • roda 100% no seu navegador</p>
+      </div>
+      <button class="icon-btn" id="clearBtn" title="Apagar conversa">🗑 Limpar</button>
+    </div>
+    <div class="flex gap-2 mt-3 overflow-x-auto pb-1" id="modes">
+      <div class="pill" data-mode="auto">✨ Automático</div>
+      <div class="pill" data-mode="explain">📘 Explicativo</div>
+      <div class="pill" data-mode="plan">✅ Lista de Tarefas</div>
+      <div class="pill" data-mode="math">🧮 Científico/Matemático</div>
+    </div>
+  </header>
+
+  <!-- Chat -->
+  <main id="chat" aria-live="polite"></main>
+
+  <!-- Entrada -->
+  <footer class="pb-3">
+    <div class="flex gap-2 flex-wrap mb-2">
+      <button class="quick" data-q="explain">💡 Explica uma ideia</button>
+      <button class="quick" data-q="math" >🧮 Resolve uma conta</button>
+      <button class="quick" data-q="plan">🗓 Monta um plano</button>
+    </div>
+    <div class="glass rounded-2xl p-2 pl-4 flex items-end gap-2">
+      <textarea id="input" rows="1" placeholder="Pergunte algo ao Albert…" autocomplete="off"></textarea>
+      <button id="send" aria-label="Enviar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+    <p class="text-[11px] text-center text-[#5d6896] mt-2">Enter envia • Shift+Enter quebra linha • Conversa salva no seu navegador</p>
+  </footer>
+</div>
+
+<script>
+/* =========================================================
+   ALBERT — motor local (sem servidor)
+   ========================================================= */
+const STORE_KEY = 'albert_state_v1';
+const $ = s => document.querySelector(s);
+const chatEl = $('#chat'), inputEl = $('#input'), sendBtn = $('#send');
+
+let state = { messages: [], forced: 'auto', pending: null };
+let busy = false;
+
+/* ---------- utilidades ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clock = ts => new Date(ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+function save(){
+  try { state.messages = state.messages.slice(-200); localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
+}
+function load(){
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (s && Array.isArray(s.messages)) state = Object.assign(state, s);
+  } catch(e){}
+}
+const MODE_LABEL = { explain:'📘 Explicativo', plan:'✅ Lista de Tarefas', math:'🧮 Científico/Matemático', chat:'💬 Conversa' };
+
+/* =========================================================
+   MOTOR MATEMÁTICO (parser seguro, sem eval)
+   ========================================================= */
+function tokenize(s){
+  const t = []; let i = 0;
+  while (i < s.length){
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    let m;
+    if ((m = s.slice(i).match(/^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/))) { t.push({k:'num', v:parseFloat(m[0])}); i += m[0].length; continue; }
+    if ((m = s.slice(i).match(/^[a-z]+/))) { t.push({k:'id', v:m[0]}); i += m[0].length; continue; }
+    if ('+-*/^()!%,'.includes(c)) { t.push({k:'op', v:c}); i++; continue; }
+    throw new Error('Caractere inválido: ' + c);
+  }
+  return t;
+}
+const FN = {
+  sqrt:Math.sqrt, sin:Math.sin, cos:Math.cos, tan:Math.tan, log:Math.log10, ln:Math.log,
+  abs:Math.abs, exp:Math.exp, round:Math.round, floor:Math.floor, ceil:Math.ceil,
+  asin:Math.asin, acos:Math.acos, atan:Math.atan
+};
+function factorial(n){
+  if (n < 0 || !Number.isInteger(n) || n > 170) throw new Error('Fatorial inválido');
+  let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
+}
+function evalExpr(str, vars = {}){
+  const tk = tokenize(str); let p = 0;
+  const peek = () => tk[p];
+  const isOp = v => tk[p] && tk[p].k === 'op' && tk[p].v === v;
+  function expr(){
+    let v = term();
+    while (isOp('+') || isOp('-')) { const o = tk[p++].v; const r = term(); v = o === '+' ? v + r : v - r; }
+    return v;
+  }
+  function term(){
+    let v = unary();
+    for (;;){
+      if (isOp('*') || isOp('/')) { const o = tk[p++].v; const r = unary(); v = o === '*' ? v * r : v / r; }
+      else if (peek() && (peek().k === 'id' || isOp('('))) { v *= unary(); }
+      else break;
+    }
+    return v;
+  }
+  function unary(){
+    if (isOp('-')) { p++; return -unary(); }
+    if (isOp('+')) { p++; return unary(); }
+    return power();
+  }
+  function power(){
+    const b = postfix();
+    if (isOp('^')) { p++; return Math.pow(b, unary()); }
+    return b;
+  }
+  function postfix(){
+    let v = primary();
+    while (isOp('!') || isOp('%')) { const o = tk[p++].v; v = o === '!' ? factorial(v) : v / 100; }
+    return v;
+  }
+  function primary(){
+    const t = tk[p++];
+    if (!t) throw new Error('Expressão incompleta');
+    if (t.k === 'num') return t.v;
+    if (t.k === 'op' && t.v === '('){ const v = expr(); if (!isOp(')')) throw new Error('Parêntese aberto'); p++; return v; }
+    if (t.k === 'id'){
+      if (t.v === 'pi') return Math.PI;
+      if (t.v in vars) return vars[t.v];
+      if (FN[t.v]){
+        let a;
+        if (isOp('(')) { p++; a = expr(); if (!isOp(')')) throw new Error('Parêntese aberto'); p++; }
+        else a = unary();
+        return FN[t.v](a);
+      }
+      throw new Error('Desconhecido: ' + t.v);
+    }
+    throw new Error('Símbolo inesperado');
+  }
+  const r = expr();
+  if (p < tk.length) throw new Error('Sobrou conteúdo');
+  return r;
+}
+function prep(text, keepX = false){
+  let t = text.toLowerCase().normalize('NFC');
+  t = t.replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/\*\*/g, '^')
+       .replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, ' sqrt ')
+       .replace(/\beuler\b/g, 'exp(1)')
+       .replace(/raiz quadrada de|raiz de/g, ' sqrt ')
+       .replace(/ao quadrado/g, '^2').replace(/ao cubo/g, '^3')
+       .replace(/elevado (a|à)\s*/g, '^')
+       .replace(/\bmais\b/g, '+').replace(/\bmenos\b/g, '-').replace(/\bvezes\b/g, '*')
+       .replace(/dividido por|dividido/g, '/')
+       .replace(/seno/g,'sin').replace(/\bsen\b/g,'sin').replace(/cosseno/g,'cos').replace(/tangente/g,'tan')
+       .replace(/logaritmo natural/g,'ln').replace(/logaritmo/g,'log')
+       .replace(/(\d)\s*x\s*(?=\d)/g, '$1*')
+       .replace(/(\d),(\d)/g, '$1.$2')
+       .replace(/\?/g, '');
+  const allowed = new Set(['sqrt','sin','cos','tan','log','ln','abs','exp','pi','round','floor','ceil','asin','acos','atan']);
+  if (keepX) allowed.add('x');
+  t = t.replace(/[a-zçãõáéíóúâêô]+/g, w => allowed.has(w) ? w : ' ');
+  return t.replace(/\s+/g, ' ').trim();
+}
+function fmt(n){
+  if (typeof n !== 'number') return String(n);
+  if (!isFinite(n)) return String(n);
+  if (Object.is(n, -0)) n = 0;
+  const a = Math.abs(n);
+  if (Number.isInteger(n) && a < 1e15) return n.toLocaleString('pt-BR');
+  if (a !== 0 && (a >= 1e12 || a < 1e-6)) return n.toExponential(6).replace('.', ',');
+  return parseFloat(n.toPrecision(12)).toLocaleString('pt-BR', {maximumFractionDigits: 10});
+}
+function primeFactors(n){
+  const f = []; let x = n;
+  for (let d = 2; d * d <= x; d++) while (x % d === 0) { f.push(d); x /= d; }
+  if (x > 1) f.push(x);
+  return f;
+}
+const isPrime = n => n > 1 && primeFactors(n).length === 1;
+const gcd = (a, b) => b ? gcd(b, a % b) : Math.abs(a);
+function sci(n){
+  if (n === 0) return '0';
+  const e = Math.floor(Math.log10(Math.abs(n)));
+  return (n / Math.pow(10, e)).toPrecision(6).replace(/\.?0+$/, '').replace('.', ',') + ' × 10^' + e;
+}
+const row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+const code = s => `<div class="code">${esc(s)}</div>`;
+const parseNums = s => (s.match(/-?\d+(?:[.,]\d+)?/g) || []).map(x => parseFloat(x.replace(',', '.')));
+
+function numberFacts(n){
+  let r = '';
+  if (Number.isInteger(n) && Math.abs(n) < 1e15){
+    r += row('Paridade', n % 2 === 0 ? 'par' : 'ímpar');
+    if (n > 1) r += row('Primo?', isPrime(n) ? 'sim' : 'não — ' + primeFactors(n).join(' × '));
+    if (n >= 0 && n < 2**40) r += row('Binário', n.toString(2));
+    if (n >= 0 && n < 2**40) r += row('Hexadecimal', n.toString(16).toUpperCase());
+  } else if (isFinite(n)) {
+    r += row('Arredondado', fmt(Math.round(n * 1000) / 1000));
+  }
+  if (isFinite(n)) r += row('Notação científica', sci(n));
+  if (isFinite(n) && n > 0) r += row('Raiz quadrada', fmt(Math.sqrt(n)));
+  return r;
+}
+
+/* ---------- solucionadores ---------- */
+function solveStats(text){
+  const nums = parseNums(text);
+  if (nums.length < 2) return null;
+  const n = nums.length, sum = nums.reduce((a, b) => a + b, 0), mean = sum / n;
+  const s = [...nums].sort((a, b) => a - b);
+  const med = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+  const cnt = {}; nums.forEach(v => cnt[v] = (cnt[v] || 0) + 1);
+  const mx = Math.max(...Object.values(cnt));
+  const modes = mx > 1 ? Object.keys(cnt).filter(k => cnt[k] === mx).map(Number) : [];
+  const ss = nums.reduce((a, b) => a + (b - mean) ** 2, 0);
+  const varP = ss / n, varS = n > 1 ? ss / (n - 1) : NaN;
+  return `<p>Analisei <b>${n} valores</b>: <span class="code" style="display:inline;padding:2px 8px">${nums.map(fmt).join(' ; ')}</span></p>
+  <div class="step"><div class="n" style="background:var(--violet)">1</div><div>Soma = ${nums.map(fmt).join(' + ')} = <b>${fmt(sum)}</b><br>Média = ${fmt(sum)} ÷ ${n} = <b>${fmt(mean)}</b></div></div>
+  <div class="step"><div class="n" style="background:var(--violet)">2</div><div>Ordenando: ${s.map(fmt).join(', ')}<br>Mediana = <b>${fmt(med)}</b></div></div>
+  <div class="step"><div class="n" style="background:var(--violet)">3</div><div>Variância populacional = Σ(x − média)² ÷ n = <b>${fmt(varP)}</b><br>Desvio padrão populacional = √${fmt(varP)} = <b>${fmt(Math.sqrt(varP))}</b></div></div>
+  <table class="data">${row('Mínimo / Máximo', fmt(s[0]) + ' / ' + fmt(s[n-1]))}${row('Amplitude', fmt(s[n-1] - s[0]))}${row('Moda', modes.length ? modes.map(fmt).join(', ') : 'não há')}${row('Desvio padrão amostral', isNaN(varS) ? '—' : fmt(Math.sqrt(varS)))}${row('Coef. de variação', mean ? fmt(Math.sqrt(varP) / Math.abs(mean) * 100) + ' %' : '—')}</table>`;
+}
+function solvePercent(text){
+  const m = text.toLowerCase().match(/(\d+(?:[.,]\d+)?)\s*%\s*(?:de|do|da)\s*(\d+(?:[.,]\d+)?)/);
+  if (!m) return null;
+  const p = parseFloat(m[1].replace(',', '.')), v = parseFloat(m[2].replace(',', '.'));
+  const r = p / 100 * v;
+  return `<p>Porcentagem de um valor:</p>${code(`${fmt(p)}% de ${fmt(v)} = (${fmt(p)} ÷ 100) × ${fmt(v)} = ${fmt(p/100)} × ${fmt(v)}`)}
+  <div class="result">${fmt(r)}</div>
+  <table class="data">${row('Valor + ' + fmt(p) + '%', fmt(v + r))}${row('Valor − ' + fmt(p) + '%', fmt(v - r))}</table>`;
+}
+function solveGcdLcm(text){
+  const t = norm(text);
+  if (!/\b(mdc|mmc)\b|maximo divisor|minimo multiplo/.test(t)) return null;
+  const nums = parseNums(text).filter(Number.isInteger).map(Math.abs);
+  if (nums.length < 2) return null;
+  const g = nums.reduce(gcd), l = nums.reduce((a, b) => a / gcd(a, b) * b);
+  return `<p>Números: <b>${nums.join(', ')}</b></p>
+  <div class="step"><div class="n" style="background:var(--violet)">1</div><div>Fatoração: ${nums.map(n => `${n} = ${primeFactors(n).join(' × ') || 1}`).join('<br>')}</div></div>
+  <div class="step"><div class="n" style="background:var(--violet)">2</div><div>MDC (fatores comuns, menores expoentes) = <b>${fmt(g)}</b><br>MMC (todos os fatores, maiores expoentes) = <b>${fmt(l)}</b></div></div>
+  <p class="note">Dica: MDC × MMC = produto, quando são apenas dois números (${fmt(g)} × ${fmt(l)}${nums.length === 2 ? ' = ' + fmt(nums[0] * nums[1]) : ''}).</p>`;
+}
+function solveFactor(text){
+  const t = norm(text);
+  if (!/fator|decomp|primo/.test(t)) return null;
+  const nums = parseNums(text).filter(n => Number.isInteger(n) && n > 1);
+  if (nums.length !== 1) return null;
+  const n = nums[0]; if (n > 1e14) return null;
+  const f = primeFactors(n);
+  const cnt = {}; f.forEach(x => cnt[x] = (cnt[x] || 0) + 1);
+  const pow = Object.keys(cnt).map(k => cnt[k] > 1 ? `${k}^${cnt[k]}` : k).join(' × ');
+  return `<p><b>${fmt(n)}</b> ${f.length === 1 ? 'é um <b>número primo</b> ✔' : 'não é primo.'}</p>${code(`${n} = ${f.join(' × ')}${f.length > 1 ? '\n    = ' + pow : ''}`)}
+  <table class="data">${row('Nº de divisores', Object.values(cnt).reduce((a, c) => a * (c + 1), 1))}${row('Fatores primos distintos', Object.keys(cnt).join(', '))}</table>`;
+}
+function solveEquation(text){
+  if (!text.includes('=')) return null;
+  const t = prep(text, true);
+  const parts = t.split('=');
+  if (parts.length !== 2 || !/x/.test(t)) return null;
+  const f = x => evalExpr(parts[0], {x}) - evalExpr(parts[1], {x});
+  let f0, f1, fm, f2, f3;
+  try { f0 = f(0); f1 = f(1); fm = f(-1); f2 = f(2); f3 = f(3); } catch(e){ return null; }
+  const c = f0, a = (f1 + fm) / 2 - f0, b = (f1 - fm) / 2;
+  const poly = x => a * x * x + b * x + c;
+  const isPoly = Math.abs(poly(2) - f2) < 1e-6 && Math.abs(poly(3) - f3) < 1e-6;
+  const eq = `${parts[0].trim()} = ${parts[1].trim()}`.replace(/\*/g, '·');
+  let h = `<p>Equação: <b>${esc(eq)}</b></p>`;
+  if (isPoly && Math.abs(a) < 1e-9){
+    if (Math.abs(b) < 1e-9) return h + `<p>${Math.abs(c) < 1e-9 ? 'Vale para <b>qualquer x</b> (infinitas soluções).' : 'Não tem solução (chegamos a uma contradição).'}</p>`;
+    const x = -c / b;
+    return h + `<div class="step"><div class="n" style="background:var(--violet)">1</div><div>Passo tudo para um lado → <b>${fmt(b)}x ${c < 0 ? '−' : '+'} ${fmt(Math.abs(c))} = 0</b></div></div>
+    <div class="step"><div class="n" style="background:var(--violet)">2</div><div>Isolo o x: x = ${fmt(-c)} ÷ ${fmt(b)}</div></div>
+    <div class="result">x = ${fmt(x)}</div>${code(`Verificação: f(${fmt(x)}) = ${fmt(f(x))} ≈ 0 ✔`)}`;
+  }
+  if (isPoly){
+    const d = b * b - 4 * a * c;
+    h += `<div class="step"><div class="n" style="background:var(--violet)">1</div><div>Forma padrão: <b>${fmt(a)}x² ${b < 0 ? '−' : '+'} ${fmt(Math.abs(b))}x ${c < 0 ? '−' : '+'} ${fmt(Math.abs(c))} = 0</b><br>a = ${fmt(a)}, b = ${fmt(b)}, c = ${fmt(c)}</div></div>
+    <div class="step"><div class="n" style="background:var(--violet)">2</div><div>Discriminante: Δ = b² − 4ac = ${fmt(b*b)} − ${fmt(4*a*c)} = <b>${fmt(d)}</b></div></div>`;
+    if (d > 1e-12){
+      const x1 = (-b + Math.sqrt(d)) / (2 * a), x2 = (-b - Math.sqrt(d)) / (2 * a);
+      h += `<div class="step"><div class="n" style="background:var(--violet)">3</div><div>Δ &gt; 0 → duas raízes reais.<br>x = (−b ± √Δ) ÷ 2a = (${fmt(-b)} ± ${fmt(Math.sqrt(d))}) ÷ ${fmt(2*a)}</div></div>
+      <div class="result">x₁ = ${fmt(x1)} &nbsp; x₂ = ${fmt(x2)}</div>${code(`Soma das raízes = ${fmt(x1 + x2)}  (−b/a = ${fmt(-b/a)})\nProduto das raízes = ${fmt(x1 * x2)}  (c/a = ${fmt(c/a)})`)}`;
+    } else if (Math.abs(d) <= 1e-12){
+      h += `<div class="step"><div class="n" style="background:var(--violet)">3</div><div>Δ = 0 → uma raiz real (dupla).</div></div><div class="result">x = ${fmt(-b / (2 * a))}</div>`;
+    } else {
+      const re = -b / (2 * a), im = Math.sqrt(-d) / (2 * a);
+      h += `<div class="step"><div class="n" style="background:var(--violet)">3</div><div>Δ &lt; 0 → não há raízes reais, mas há duas complexas:</div></div><div class="result">x = ${fmt(re)} ± ${fmt(Math.abs(im))}i</div>`;
+    }
+    return h;
+  }
+  // numérico: varredura + bisseção
+  const roots = []; let prev = -200, fp = f(prev);
+  for (let x = -199.5; x <= 200; x += 0.5){
+    const fx = f(x);
+    if (isFinite(fp) && isFinite(fx) && fp * fx < 0){
+      let lo = x - 0.5, hi = x;
+      for (let i = 0; i < 80; i++){ const mid = (lo + hi) / 2; (f(lo) * f(mid) <= 0) ? hi = mid : lo = mid; }
+      roots.push((lo + hi) / 2);
+    }
+    prev = x; fp = fx;
+  }
+  if (!roots.length) return h + '<p>Não achei raízes reais entre −200 e 200 por método numérico.</p>';
+  return h + `<p>Equação não polinomial — usei o <b>método da bisseção</b> no intervalo [−200, 200]:</p><div class="result">${roots.slice(0, 6).map((r, i) => `x${i + 1} ≈ ${fmt(r)}`).join(' &nbsp; ')}</div>`;
+}
+function solveExpression(text){
+  const t = prep(text);
+  if (!/\d/.test(t) && !/pi/.test(t)) return null;
+  let r;
+  try { r = evalExpr(t); } catch(e) { return {error: e.message}; }
+  if (typeof r !== 'number' || isNaN(r)) return {error: 'O resultado não é um número real (ex.: raiz de negativo ou 0÷0).'};
+  const shown = t.replace(/\*/g, ' × ').replace(/\//g, ' ÷ ').replace(/sqrt/g, '√').replace(/pi/g, 'π').replace(/\s+/g, ' ');
+  return `<p>Resolvendo com a ordem das operações (parênteses → potências → × ÷ → + −):</p>${code(shown + '  =  ' + fmt(r))}
+  <div class="result">${fmt(r)}</div>
+  <table class="data">${numberFacts(r)}</table>
+  ${/sin|cos|tan/.test(t) ? '<p class="note">⚠ Funções trigonométricas usam <b>radianos</b>.</p>' : ''}`;
+}
+
+/* =========================================================
+   BASE DE CONCEITOS (modo Explicativo)
+   ========================================================= */
+const TOPICS = [
+ { k:/gravidade|gravita|newton/, t:'Gravidade', steps:[
+   'Todo objeto com massa <b>puxa</b> outros objetos. Quanto mais massa, mais forte é a puxada.',
+   'Newton descreveu isso com a lei da gravitação: <b>F = G·m₁·m₂ / d²</b>. A força cai com o <i>quadrado</i> da distância.',
+   'Na Terra, essa puxada dá a todo objeto uma aceleração de cerca de <b>9,8 m/s²</b> — por isso, sem ar, uma pena e uma bigorna caem juntas.',
+   'Einstein foi além: a massa <b>curva o espaço-tempo</b>, e os objetos seguem essa curvatura como uma bolinha numa lona esticada.'],
+   ex:'Imagine uma lona esticada: uma bola pesada no meio cria um buraco, e bolinhas menores rolam em direção a ela.', fun:'Dobrando a distância, a gravidade vira 1/4 — não 1/2.' },
+ { k:/relatividade|einstein|e\s*=\s*mc/, t:'Relatividade', steps:[
+   'Primeiro princípio: as leis da física são as mesmas para quem se move em velocidade constante, e a <b>luz tem sempre a mesma velocidade</b> (c ≈ 300.000 km/s).',
+   'Consequência: o <b>tempo passa mais devagar</b> para quem se move muito rápido (dilatação do tempo).',
+   'Também: massa e energia são equivalentes — <b>E = mc²</b>. Um pouquinho de massa guarda uma energia gigantesca.',
+   'Na Relatividade Geral, a gravidade é a curvatura do espaço-tempo. Isso explica as órbitas, os buracos negros e até o GPS (que precisa de correção!).'],
+   ex:'Se você pudesse viajar a 99% da velocidade da luz por 1 ano, na Terra passariam cerca de 7 anos.', fun:'Os satélites de GPS adiantam ~38 microssegundos por dia por causa da relatividade.' },
+ { k:/buraco negro|buracos negros/, t:'Buraco negro', steps:[
+   'Quando uma estrela muito massuda morre, seu núcleo pode colapsar num ponto minúsculo e densíssimo.',
+   'Ali a gravidade é tão forte que a <b>velocidade de escape</b> passa da velocidade da luz — nada escapa.',
+   'A fronteira sem volta se chama <b>horizonte de eventos</b>.',
+   'Não "sugam" tudo: de longe, a órbita ao redor é igual à de qualquer outro objeto com a mesma massa.'],
+   ex:'É como uma cachoeira: depois de passar da borda, nem o barco mais potente consegue subir.', fun:'Stephen Hawking mostrou que buracos negros emitem uma radiação fraquíssima e podem "evaporar".' },
+ { k:/\bpi\b|π|numero pi/, t:'O número π (pi)', steps:[
+   'Pegue qualquer círculo e meça o <b>contorno</b> (circunferência) e a <b>largura</b> (diâmetro).',
+   'Divida um pelo outro: sempre dá o mesmo número, <b>π ≈ 3,14159…</b>',
+   'Daí vêm as fórmulas: <b>C = 2πr</b> e <b>A = πr²</b>.',
+   'π é <b>irracional</b>: suas casas decimais nunca terminam nem se repetem em padrão.'],
+   ex:'Uma pizza de 30 cm de diâmetro tem borda de ~94,2 cm (30 × π).', fun:'Com 39 casas decimais de π dá para calcular a circunferência do universo observável com precisão de um átomo de hidrogênio.' },
+ { k:/derivad/, t:'Derivada', steps:[
+   'Derivada mede <b>o quão rápido algo muda</b> em um instante.',
+   'Geometricamente: é a <b>inclinação da reta tangente</b> à curva naquele ponto.',
+   'Definição: f′(x) = lim (h→0) [f(x+h) − f(x)] ÷ h — você "aproxima" dois pontos até virarem um só.',
+   'Regra prática: a derivada de <b>xⁿ é n·xⁿ⁻¹</b>. Ex.: (x³)′ = 3x².'],
+   ex:'O velocímetro do carro mostra a derivada da posição em relação ao tempo.', fun:'Newton e Leibniz inventaram o cálculo quase ao mesmo tempo — e brigaram por isso.' },
+ { k:/integral|integrac/, t:'Integral', steps:[
+   'Integral <b>soma infinitas fatias minúsculas</b> de algo.',
+   'Geometricamente: é a <b>área sob uma curva</b>.',
+   'O Teorema Fundamental do Cálculo liga tudo: integrar é o <b>inverso</b> de derivar.',
+   'Ex.: ∫ 2x dx = x² + C.'],
+   ex:'Se você soma a velocidade a cada instante, obtém a distância percorrida.', fun:'O símbolo ∫ é um "S" alongado, de "summa" (soma).' },
+ { k:/probabilidade|chance/, t:'Probabilidade', steps:[
+   'Probabilidade mede <b>quão provável</b> é um evento, de 0 (impossível) a 1 (certo).',
+   'Fórmula base: <b>P = casos favoráveis ÷ casos possíveis</b>.',
+   'Ex.: tirar um número par num dado: 3 ÷ 6 = <b>0,5 = 50%</b>.',
+   'Eventos independentes se <b>multiplicam</b>: dois pares seguidos = 0,5 × 0,5 = 25%.'],
+   ex:'A chance de acertar a Mega-Sena com 6 números é 1 em 50.063.860.', fun:'Num grupo de 23 pessoas, há 50% de chance de duas fazerem aniversário no mesmo dia.' },
+ { k:/pitagoras|triangulo retangulo/, t:'Teorema de Pitágoras', steps:[
+   'Vale só para <b>triângulos retângulos</b> (com um ângulo de 90°).',
+   'Os lados que formam o ângulo reto são os <b>catetos</b> (a e b); o lado oposto é a <b>hipotenusa</b> (c), sempre o maior.',
+   'A regra: <b>a² + b² = c²</b>.',
+   'Ex.: catetos 3 e 4 → 9 + 16 = 25 → c = <b>5</b>.'],
+   ex:'Pedreiros usam o triângulo 3-4-5 para conferir se um canto está em esquadro.', fun:'Existem mais de 370 demonstrações diferentes desse teorema.' },
+ { k:/\bdna\b|genetic|gene\b|genes\b/, t:'DNA', steps:[
+   'O DNA é uma molécula longa em forma de <b>dupla hélice</b>, presente nas células.',
+   'É escrito com 4 "letras": <b>A, T, C, G</b> (bases nitrogenadas). A pareia com T; C pareia com G.',
+   'Trechos do DNA, os <b>genes</b>, são receitas para fabricar proteínas.',
+   'Ao se dividir, a célula copia o DNA usando cada fita como molde.'],
+   ex:'É como um livro de receitas: o gene é a receita, a proteína é o prato.', fun:'Se esticasse o DNA de uma só célula humana, teria ~2 metros.' },
+ { k:/fotossintese/, t:'Fotossíntese', steps:[
+   'Plantas captam <b>luz solar</b> com a clorofila (o pigmento verde) nos cloroplastos.',
+   'Absorvem <b>água</b> (raízes) e <b>CO₂</b> (folhas).',
+   'Com a energia da luz, transformam isso em <b>glicose</b> (alimento) e liberam <b>O₂</b>.',
+   'Equação: <b>6CO₂ + 6H₂O + luz → C₆H₁₂O₆ + 6O₂</b>.'],
+   ex:'A folha é uma pequena cozinha solar que fabrica comida e "solta" oxigênio de sobra.', fun:'Mais da metade do oxigênio que respiramos vem do fitoplâncton marinho.' },
+ { k:/evolucao|darwin|selecao natural/, t:'Evolução por seleção natural', steps:[
+   'Indivíduos de uma espécie são <b>diferentes</b> entre si (variação).',
+   'Algumas características são <b>herdadas</b> pelos filhos.',
+   'Nem todos sobrevivem: quem tem traços mais adequados ao ambiente <b>deixa mais descendentes</b>.',
+   'Ao longo de muitas gerações, esses traços se tornam comuns — a população muda.'],
+   ex:'Bactérias resistentes a antibióticos: as que sobrevivem ao remédio passam a resistência adiante.', fun:'Evolução não tem "objetivo": é um processo sem plano, só filtragem.' },
+ { k:/entropia|segunda lei|termodinamica/, t:'Entropia', steps:[
+   'Entropia mede a <b>desordem</b> (ou, mais precisamente, o número de arranjos possíveis) de um sistema.',
+   'A 2ª Lei da Termodinâmica diz que, num sistema isolado, a entropia <b>tende a aumentar</b>.',
+   'Por isso o calor flui do quente para o frio, e o café esfria — nunca o contrário espontaneamente.',
+   'Fórmula de Boltzmann: <b>S = k·ln(W)</b>.'],
+   ex:'Um baralho arrumado vira bagunça ao embaralhar, mas é quase impossível ele se arrumar sozinho.', fun:'A entropia é uma das razões pelas quais sentimos o "tempo passar" numa direção só.' },
+ { k:/inteligencia artificial|machine learning|aprendizado de maquina|redes? neurais?|\bia\b/, t:'Inteligência Artificial / Machine Learning', steps:[
+   'Em vez de programar regras à mão, damos ao computador <b>muitos exemplos</b>.',
+   'Um modelo (ex.: rede neural) faz uma previsão e <b>mede o erro</b>.',
+   'Com o <b>gradiente descendente</b> (cálculo!), ajusta milhões de números internos para errar menos.',
+   'Repetindo isso milhões de vezes, o modelo <b>generaliza</b> para exemplos novos.'],
+   ex:'É como aprender a jogar basquete: você arremessa, vê onde errou e ajusta o movimento.', fun:'Por baixo dos panos, IA é principalmente álgebra linear e derivadas.' },
+ { k:/big bang|origem do universo|universo/, t:'Big Bang', steps:[
+   'Há ~13,8 bilhões de anos, o universo era <b>extremamente quente e denso</b>.',
+   'Desde então, o próprio <b>espaço se expande</b> — as galáxias se afastam umas das outras.',
+   'Com o resfriamento, surgiram prótons, nêutrons, átomos de hidrogênio e hélio, e depois estrelas e galáxias.',
+   'Evidência: a <b>radiação cósmica de fundo</b>, o "eco" luminoso daquela época.'],
+   ex:'Pense em passas num bolo crescendo: todas se afastam, sem que haja "centro".', fun:'Parte do chiado de TVs analógicas antigas vinha dessa radiação.' }
+];
+
+function explainReply(text){
+  const t = norm(text);
+  const hit = TOPICS.find(x => x.k.test(t));
+  if (hit){
+    return { html: `<p>Vamos com calma, <b>passo a passo</b>, sobre <b>${hit.t}</b>:</p>` +
+      hit.steps.map((s, i) => `<div class="step"><div class="n">${i + 1}</div><div>${s}</div></div>`).join('') +
+      `<p><b>🧠 Analogia:</b> ${hit.ex}</p><p class="note">✨ Curiosidade: ${hit.fun}</p>
+       <p class="note">Entendeu todos os passos? Peça: <span class="chip" data-send="Explica de um jeito ainda mais simples: ${esc(hit.t)}">mais simples</span><span class="chip" data-send="Dê um exemplo numérico de ${esc(hit.t)}">exemplo com números</span></p>` };
+  }
+  let topic = text.replace(/^(albert[,:]?\s*)?(por favor[, ]*)?(me\s+)?(explica(r)?|explique|me ajuda a entender|o que (é|e|são|sao)|que (é|e)|como funciona(m)?|por que|porque|por qu[eê]|qual (é|e) a ideia de)\s*(uma ideia\s*)?(de|do|da|sobre|o|a|os|as)?\s*/i, '').replace(/[?!.]+$/, '').trim();
+  if (topic.length < 2) topic = text.trim();
+  topic = esc(topic.slice(0, 80));
+  return { html: `<p>Não tenho um verbete pronto sobre "<b>${topic}</b>", mas posso te guiar por um método que funciona para <i>qualquer</i> ideia — devagar:</p>
+    <div class="step"><div class="n">1</div><div><b>Defina em uma frase.</b> Tente completar: "${topic} é aquilo que…". Se não conseguir, ainda não dominou o termo.</div></div>
+    <div class="step"><div class="n">2</div><div><b>Quebre em partes.</b> Liste de 3 a 5 componentes ou etapas — cada uma deve caber numa frase simples.</div></div>
+    <div class="step"><div class="n">3</div><div><b>Ache um exemplo do dia a dia.</b> Conecte com algo que você já conhece (cozinha, trânsito, jogos).</div></div>
+    <div class="step"><div class="n">4</div><div><b>Teste os limites.</b> Pergunte: "quando isso <i>não</i> vale?" — é aí que o entendimento fica profundo.</div></div>
+    <div class="step"><div class="n">5</div><div><b>Explique em voz alta</b> como se falasse com uma criança de 10 anos (técnica de Feynman).</div></div>
+    <p class="note">Quer que eu aprofunde? Tente temas que domino bem:
+    <span class="chip" data-send="Explica a gravidade">gravidade</span><span class="chip" data-send="Explica o DNA">DNA</span><span class="chip" data-send="Explica derivadas">derivadas</span><span class="chip" data-send="Explica probabilidade">probabilidade</span><span class="chip" data-send="Explica buracos negros">buracos negros</span><span class="chip" data-send="Explica entropia">entropia</span></p>` };
+}
+
+/* =========================================================
+   MODO LISTA DE TAREFAS
+   ========================================================= */
+function planReply(text){
+  const t = norm(text);
+  let goal = text.replace(/^(albert[,:]?\s*)?(por favor[, ]*)?(me\s+)?(monta(r)?|monte|crie|criar|faz(er)?|faça|elabora(r)?|prepara(r)?|gera(r)?|quero|preciso de|preciso|me ajuda a)\s*(um|uma)?\s*(plano|lista( de tarefas)?|rotina|cronograma|roteiro|checklist)\s*(de|do|da|para|pra|pro|sobre)?\s*/i, '').replace(/[?!.]+$/, '').trim();
+  const dm = t.match(/(\d+)\s*(dia|dias|semana|semanas|mes|meses)/);
+  let days = 7, unit = 'dias';
+  if (dm){ const n = parseInt(dm[1]); days = /semana/.test(dm[2]) ? n * 7 : /mes/.test(dm[2]) ? n * 30 : n; }
+  else if (/semana/.test(t)) days = 7; else if (/mes/.test(t)) days = 30; else if (/hoje|dia\b/.test(t)) days = 1;
+  days = Math.max(1, Math.min(days, 365));
+  if (!goal || goal.length < 3) goal = 'meu objetivo';
+  goal = goal.replace(/\b(em|durante|por)\s+\d+\s*(dias?|semanas?|mes(es)?)\b/i, '').trim() || 'meu objetivo';
+  const G = goal.length > 70 ? goal.slice(0, 70) + '…' : goal;
+
+  let kind = 'proj';
+  if (/estud|aprend|prova|curso|vestibular|enem|concurso|matematic|fisica|quimica|ingles|livro|ler\b/.test(t)) kind = 'study';
+  else if (/treino|academia|corrid|correr|emagrec|saude|dieta|exercicio|musculac/.test(t)) kind = 'fit';
+  else if (/hoje|rotina|dia\b|organiz/.test(t) && days <= 1) kind = 'day';
+
+  const T = {
+    study: ['Definir o objetivo exato e o que será cobrado em "'+G+'"','Reunir materiais (livro, videoaulas, exercícios) e listar os tópicos','Dividir os tópicos em blocos de 25–50 min (técnica Pomodoro)','Estudar a teoria de cada tópico e escrever um resumo com as próprias palavras','Resolver exercícios — mínimo 10 por tópico, anotando os erros','Revisão espaçada: reler resumos após 1, 3 e 7 dias','Fazer um simulado/teste cronometrado','Analisar erros e reforçar os pontos fracos','Revisão final leve e descanso antes da avaliação'],
+    fit: ['Definir meta mensurável para "'+G+'" (ex.: kg, km, minutos)','Fazer avaliação inicial (peso, medidas, tempo) para ter referência','Montar agenda semanal com treinos e dias de descanso','Planejar refeições e hidratação da semana','Executar o treino do dia com aquecimento e alongamento','Registrar desempenho (cargas, tempo, distância)','Dormir 7–8 h — a recuperação faz parte do plano','Reavaliar semanalmente e ajustar a intensidade'],
+    day: ['Escrever as 3 tarefas mais importantes de "'+G+'"','Fazer a tarefa mais difícil primeiro (manhã)','Bloquear 2 períodos de foco de 50 min sem celular','Resolver pendências rápidas (menos de 2 min cada)','Pausa ativa: água, alongar, respirar','Revisar o que foi concluído e anotar aprendizados','Preparar a lista de prioridades de amanhã'],
+    proj: ['Definir o resultado final de "'+G+'" e como saber que ficou pronto','Listar tudo o que é necessário (recursos, pessoas, tempo, dinheiro)','Quebrar em etapas pequenas e ordená-las','Estimar o tempo de cada etapa e marcar datas','Eliminar o maior risco ou dúvida logo no começo','Executar a primeira etapa — versão simples, sem perfeccionismo','Revisar o progresso e corrigir a rota','Finalizar, testar e comemorar a entrega']
+  }[kind];
+
+  const items = T.map((txt, i) => {
+    let when = '';
+    if (days > 1){
+      const a = Math.floor(i * days / T.length) + 1, b = Math.max(a, Math.floor((i + 1) * days / T.length));
+      when = a === b ? `Dia ${a}` : `Dias ${a}–${b}`;
+    }
+    return { t: txt, when, done: false };
+  });
+  const label = { study:'Plano de estudos', fit:'Plano de treino', day:'Plano do dia', proj:'Plano de ação' }[kind];
+  return { html: `<p>Organizei isso para você fazer, ${days > 1 ? `ao longo de <b>${days} dias</b>` : 'hoje'}. Marque as caixinhas conforme avançar — o progresso fica salvo.</p>`,
+           plan: { title: `${label}: ${G}`, items },
+           after: `<p class="note">Dica do Albert: comece pelo item 1 agora mesmo — 5 minutos já vencem a inércia. Quer outro prazo? Ex.: <span class="chip" data-send="Monta um plano de ${esc(goal)} em 30 dias">30 dias</span><span class="chip" data-send="Monta um plano de ${esc(goal)} em 3 dias">3 dias</span></p>` };
+}
+
+/* =========================================================
+   MODO CIENTÍFICO / MATEMÁTICO
+   ========================================================= */
+function mathReply(text){
+  const t = norm(text);
+  let body = null;
+  if (/media|mediana|moda|desvio|variancia|estatistic/.test(t)) body = solveStats(text);
+  if (!body) body = solveGcdLcm(text);
+  if (!body) body = solveFactor(text);
+  if (!body) body = solvePercent(text);
+  if (!body) { try { body = solveEquation(text); } catch(e){} }
+  if (!body) {
+    const r = solveExpression(text);
+    if (r && r.error) return { html: `<p>Tentei calcular, mas deu problema: <b>${esc(r.error)}</b>.</p><p class="note">Confira parênteses e operadores. Ex.: <span class="chip" data-send="(3+5)*2^3 - 4/2">(3+5)*2^3 - 4/2</span></p>` };
+    body = r;
+  }
+  if (body) return { html: `<p>Entrando no modo cálculo… 🔬</p>${body}` };
+  return { html: `<p>Não encontrei números ou uma operação para resolver. 🤔</p>
+    <p class="note">Posso fazer, por exemplo:
+    <span class="chip" data-send="Quanto é (12+8)*3 - 4^2?">(12+8)*3 − 4²</span>
+    <span class="chip" data-send="Resolva x^2 - 5x + 6 = 0">x² − 5x + 6 = 0</span>
+    <span class="chip" data-send="Resolva 2x + 10 = 30">2x + 10 = 30</span>
+    <span class="chip" data-send="20% de 350">20% de 350</span>
+    <span class="chip" data-send="Média de 7, 8, 5, 9, 10">média de 7, 8, 5, 9, 10</span>
+    <span class="chip" data-send="MDC e MMC de 24 e 36">MDC/MMC</span>
+    <span class="chip" data-send="Fatore 360">fatorar 360</span>
+    <span class="chip" data-send="raiz de 144 + 5!">√144 + 5!</span></p>` };
+}
+
+/* =========================================================
+   DETECÇÃO AUTOMÁTICA DE MODO + CONVERSA
+   ========================================================= */
+function detectMode(text){
+  const t = norm(text);
+  if (/plano|planej|organiz|tarefa|checklist|lista de|rotina|cronograma|roteiro|\bmeta\b|to-?do|agenda/.test(t) && !/calcul|resolv|quanto e/.test(t)) return 'plan';
+  const hasDigit = /\d/.test(t);
+  if (/calcul|resolv|quanto (e|vale|da|fica)|equacao|fatore|fatorar|mdc|mmc|\bmedia\b|mediana|desvio|raiz|fatorial|porcentagem|\d\s*%/.test(t) && (hasDigit || /equacao|raiz/.test(t))) return 'math';
+  if (hasDigit && /[+\-*/^=×÷%!²³√]/.test(text) && !/[a-z]{6,}/.test(t.replace(/(sqrt|raiz|calcule|resolva)/g, ''))) return 'math';
+  if (hasDigit && /\d\s*[+\-*/^×÷]\s*\d|\d\s*x\s*\d|\bx\b.*=|=.*\bx\b/.test(t)) return 'math';
+  return 'explain';
+}
+function smallTalk(text){
+  const t = norm(text).replace(/[!?.,]/g, '').trim();
+  if (/^(oi|ola|e ai|eai|opa|salve|bom dia|boa tarde|boa noite|hey|hello|hi)\b/.test(t) && t.split(' ').length <= 4)
+    return `<p>${pick(['Olá! Que bom te ver por aqui.','Oi! Pronto para investigar o universo — ou uma conta chata?','Saudações, curioso(a)! 🔭'])} Sou o <b>Albert</b>. Pergunte qualquer coisa de ciência ou matemática, peça um plano, ou use os botões abaixo.</p>`;
+  if (/(quem e voce|quem e vc|quem e o albert|seu nome|o que voce faz|o que vc faz|ajuda|help|como funciona esse|o que voce sabe)/.test(t) && t.split(' ').length <= 8)
+    return `<p>Sou o <b>Albert</b>, seu cientista e matemático de bolso. Escolho sozinho o melhor jeito de responder:</p>
+    <div class="step"><div class="n">📘</div><div><b>Explicativo</b> — conceitos explicados passo a passo, devagar.</div></div>
+    <div class="step"><div class="n" style="background:var(--green)">✅</div><div><b>Lista de Tarefas</b> — planos organizados, com caixinhas para marcar.</div></div>
+    <div class="step"><div class="n" style="background:var(--violet)">🧮</div><div><b>Científico/Matemático</b> — contas, equações, estatística, fatoração e dados.</div></div>
+    <p class="note">Tudo roda no seu navegador e a conversa fica salva só aí (localStorage).</p>`;
+  if (/^(obrigad[oa]|valeu|vlw|brigad[oa]|legal|massa|show|top|perfeito|otimo)\b/.test(t))
+    return `<p>${pick(['Por nada! A curiosidade é o motor da ciência. 🚀','Disponha! Mande a próxima pergunta.','Fico feliz em ajudar! Quer testar outra ideia?'])}</p>`;
+  return null;
+}
+
+/* =========================================================
+   RENDERIZAÇÃO
+   ========================================================= */
+function planHTML(m, idx){
+  const p = m.plan, done = p.items.filter(i => i.done).length, pct = Math.round(done / p.items.length * 100);
+  return `<div style="margin-top:6px"><b>📋 ${esc(p.title)}</b></div>
+    <div class="bar"><i style="width:${pct}%"></i></div><div class="note" style="margin:-4px 0 8px" data-prog>${done}/${p.items.length} concluídas (${pct}%)</div>` +
+    p.items.map((it, i) => `<label class="check ${it.done ? 'done' : ''}"><input type="checkbox" data-plan="${idx}:${i}" ${it.done ? 'checked' : ''}><span>${it.when ? `<b style="color:var(--green)">${it.when}</b> — ` : ''}${esc(it.t)}</span></label>`).join('');
+}
+function renderMsg(m, idx){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (m.role === 'user' ? 'user' : 'albert');
+  wrap.dataset.idx = idx;
+  if (m.role === 'user'){
+    wrap.innerHTML = `<div class="avatar">🙂</div><div><div class="bubble">${esc(m.text)}</div><div class="text-[10px] text-[#5d6896] text-right mt-1 px-1">${clock(m.ts)}</div></div>`;
+  } else {
+    wrap.innerHTML = `<div class="avatar">⚛</div><div class="min-w-0" style="max-width:100%"><div class="bubble" data-mode="${m.mode}"><span class="tag ${m.mode}">${MODE_LABEL[m.mode] || ''}</span>${m.html}${m.plan ? planHTML(m, idx) : ''}${m.after || ''}</div><div class="text-[10px] text-[#5d6896] mt-1 px-1">Albert • ${clock(m.ts)}</div></div>`;
+  }
+  return wrap;
+}
+function scrollDown(){ chatEl.scrollTop = chatEl.scrollHeight; }
+function renderAll(){
+  chatEl.innerHTML = '';
+  state.messages.forEach((m, i) => chatEl.appendChild(renderMsg(m, i)));
+  scrollDown();
+}
+function addMsg(m){
+  state.messages.push(m);
+  const i = state.messages.length - 1;
+  chatEl.appendChild(renderMsg(m, i));
+  save(); scrollDown();
+}
+function showTyping(mode){
+  const w = document.createElement('div');
+  w.className = 'msg albert'; w.id = 'typing';
+  const hint = { explain:'pensando passo a passo…', plan:'organizando as tarefas…', math:'calculando…', chat:'digitando…' }[mode] || 'digitando…';
+  w.innerHTML = `<div class="avatar">⚛</div><div><div class="bubble" style="padding:10px 14px"><div class="dots"><i></i><i></i><i></i></div></div><div class="text-[11px] text-[#6c79ad] mt-1 px-1">Albert está ${hint}</div></div>`;
+  chatEl.appendChild(w); scrollDown();
+}
+const hideTyping = () => { const t = $('#typing'); if (t) t.remove(); };
+
+/* ---------- modos / UI ---------- */
+function setForced(m){
+  state.forced = m; save();
+  document.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', p.dataset.mode === m));
+}
+const PLACEHOLDER = {
+  explain:'Qual ideia você quer entender? Ex.: como funciona a gravidade?',
+  math:'Digite a conta. Ex.: x^2 - 5x + 6 = 0  ou  (12+8)*3',
+  plan:'Qual o objetivo? Ex.: estudar matemática em 14 dias'
+};
+function updatePlaceholder(){
+  inputEl.placeholder = state.pending ? PLACEHOLDER[state.pending] : 'Pergunte algo ao Albert…';
+}
+
+/* ---------- envio ---------- */
+function respond(text){
+  let mode = state.pending || (state.forced !== 'auto' ? state.forced : null);
+  const talk = !state.pending && state.forced === 'auto' ? smallTalk(text) : null;
+  if (talk) return { mode:'chat', r:{ html: talk } };
+  if (!mode) mode = detectMode(text);
+  state.pending = null; updatePlaceholder();
+  const r = mode === 'plan' ? planReply(text) : mode === 'math' ? mathReply(text) : explainReply(text);
+  return { mode, r };
+}
+async function send(text){
+  text = (text ?? inputEl.value).trim();
+  if (!text || busy) return;
+  busy = true; sendBtn.disabled = true;
+  inputEl.value = ''; autoResize();
+  addMsg({ role:'user', text, ts:Date.now() });
+  const { mode, r } = respond(text);
+  showTyping(mode);
+  const len = (r.html.length + (r.plan ? 600 : 0));
+  const delay = Math.min(2400, 800 + len * 1.2);
+  await new Promise(res => setTimeout(res, delay));
+  hideTyping();
+  addMsg({ role:'albert', mode, html:r.html, plan:r.plan, after:r.after, ts:Date.now() });
+  busy = false; sendBtn.disabled = false; inputEl.focus();
+}
+function quick(q){
+  if (busy) return;
+  state.pending = q; updatePlaceholder(); save();
+  const intro = {
+    explain:{ mode:'explain', html:`<p>Boa! Qual <b>ideia</b> você quer que eu explique? Vou destrinchar <b>devagar, passo a passo</b>.</p><p class="note">Sugestões: <span class="chip" data-send="Explica a relatividade">relatividade</span><span class="chip" data-send="Explica a fotossíntese">fotossíntese</span><span class="chip" data-send="Explica o Teorema de Pitágoras">Pitágoras</span><span class="chip" data-send="Explica o Big Bang">Big Bang</span><span class="chip" data-send="Explica inteligência artificial">IA</span></p>` },
+    math:{ mode:'math', html:`<p>Mande a conta! Eu resolvo expressões, equações (1º e 2º grau), porcentagens, média/desvio, MDC/MMC e fatoração. 🧮</p><p class="note">Exemplos: <span class="chip" data-send="Resolva x^2 - 5x + 6 = 0">x² − 5x + 6 = 0</span><span class="chip" data-send="15% de 240">15% de 240</span><span class="chip" data-send="Média de 6, 7, 9, 10, 4">média de 6, 7, 9, 10, 4</span><span class="chip" data-send="Quanto é raiz de 2025 + 3^4?">√2025 + 3⁴</span></p>` },
+    plan:{ mode:'plan', html:`<p>Vamos organizar! Me diga o <b>objetivo</b> e, se quiser, o <b>prazo</b>. Ex.: "estudar para a prova de física em 10 dias". ✅</p><p class="note">Ou escolha: <span class="chip" data-send="Monta um plano de estudar matemática em 14 dias">estudar matemática (14 dias)</span><span class="chip" data-send="Monta um plano de treino para correr 5 km em 30 dias">correr 5 km (30 dias)</span><span class="chip" data-send="Monta um plano de lançar um projeto pessoal em 21 dias">projeto pessoal</span></p>` }
+  }[q];
+  addMsg({ role:'albert', mode:intro.mode, html:intro.html, ts:Date.now() });
+  inputEl.focus();
+}
+function welcome(){
+  addMsg({ role:'albert', mode:'chat', ts:Date.now(), html:`<p>Olá! Eu sou o <b>Albert</b>, cientista e matemático. 🔭</p>
+    <p>Escolho sozinho como responder: <b>📘 explicando devagar</b>, <b>✅ montando listas de tarefas</b> ou <b>🧮 fazendo cálculos e análises</b>. É só escrever — ou tocar num dos botões abaixo.</p>
+    <p class="note">Experimente: <span class="chip" data-send="Como funciona a gravidade?">como funciona a gravidade?</span><span class="chip" data-send="Resolva 3x^2 - 12x + 9 = 0">3x² − 12x + 9 = 0</span><span class="chip" data-send="Monta um plano para aprender cálculo em 21 dias">plano: aprender cálculo</span></p>` });
+}
+function autoResize(){ inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px'; }
+
+/* ---------- eventos ---------- */
+sendBtn.addEventListener('click', () => send());
+inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
+inputEl.addEventListener('input', autoResize);
+document.querySelectorAll('.quick').forEach(b => b.addEventListener('click', () => quick(b.dataset.q)));
+$('#modes').addEventListener('click', e => {
+  const p = e.target.closest('.pill'); if (!p) return;
+  state.pending = null; updatePlaceholder();
+  setForced(p.dataset.mode);
+});
+$('#clearBtn').addEventListener('click', () => {
+  if (!confirm('Apagar toda a conversa com o Albert?')) return;
+  state.messages = []; state.pending = null; save(); updatePlaceholder(); renderAll(); welcome();
+});
+chatEl.addEventListener('click', e => {
+  const c = e.target.closest('[data-send]');
+  if (c) send(c.dataset.send);
+});
+chatEl.addEventListener('change', e => {
+  const cb = e.target.closest('[data-plan]'); if (!cb) return;
+  const [mi, ii] = cb.dataset.plan.split(':').map(Number);
+  const m = state.messages[mi]; if (!m || !m.plan) return;
+  m.plan.items[ii].done = cb.checked; save();
+  const bubble = cb.closest('.bubble');
+  cb.closest('.check').classList.toggle('done', cb.checked);
+  const done = m.plan.items.filter(i => i.done).length, tot = m.plan.items.length, pct = Math.round(done / tot * 100);
+  bubble.querySelector('.bar i').style.width = pct + '%';
+  bubble.querySelector('[data-prog]').textContent = `${done}/${tot} concluídas (${pct}%)` + (done === tot ? ' 🎉 Missão cumprida!' : '');
+});
+
+/* ---------- fundo de estrelas ---------- */
+(function stars(){
+  const cv = $('#stars'), ctx = cv.getContext('2d'); let S = [];
+  function init(){
+    cv.width = innerWidth; cv.height = innerHeight;
+    S = Array.from({length: Math.round(innerWidth * innerHeight / 9000)}, () => ({
+      x: Math.random() * cv.width, y: Math.random() * cv.height, r: Math.random() * 1.3 + .2,
+      a: Math.random() * Math.PI * 2, s: Math.random() * .02 + .005,
+      c: pick(['#9ec1ff', '#c9aeff', '#7ff0c8', '#ffffff'])
+    }));
+  }
+  function frame(){
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const s of S){ s.a += s.s; ctx.globalAlpha = .25 + .5 * Math.abs(Math.sin(s.a)); ctx.fillStyle = s.c; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill(); }
+    requestAnimationFrame(frame);
+  }
+  addEventListener('resize', init); init(); frame();
+})();
+
+/* ---------- início ---------- */
+load();
+setForced(state.forced || 'auto');
+updatePlaceholder();
+if (state.messages.length) renderAll(); else welcome();
+inputEl.focus();
+</script>
+</body>
+</html>
